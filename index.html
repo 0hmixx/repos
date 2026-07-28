@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit &amp; Drop — PEC/NEC Residential Calculations</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B1826">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Circuit & Drop">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-deep:#0B1826;
+  --navy:#122238;
+  --navy-soft:#182B45;
+  --grid-line:rgba(226,224,215,0.08);
+  --grid-line-strong:rgba(226,224,215,0.14);
+  --paper:#F3EFE4;
+  --paper-dim:#E8E2D0;
+  --copper:#BE7A3D;
+  --copper-bright:#D89653;
+  --caution:#E3B23C;
+  --ground:#5E8C61;
+  --fault:#BD4A3E;
+  --blue-accent:#6FA8DC;
+  --ink:#1C2229;
+  --ink-soft:#5B6472;
+  --onnavy:#ECE7DA;
+  --onnavy-soft:#93A0B3;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--navy-deep);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:32px 32px;
+  color:var(--onnavy);
+  font-family:var(--font-body);
+  line-height:1.6;
+}
+a{color:inherit;}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px;}
+
+/* ---- app shell / sidebar ---- */
+.app-shell{display:flex;align-items:stretch;min-height:100vh;}
+.sidebar{
+  width:230px;flex-shrink:0;display:flex;flex-direction:column;
+  background:rgba(11,24,38,0.92);border-right:1px solid var(--grid-line-strong);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 0;
+}
+.sidebar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:0.01em;padding:0 20px 22px;}
+.brand-mark{width:26px;height:26px;flex-shrink:0;}
+.main-content{flex:1;min-width:0;}
+.side-nav{display:flex;flex-direction:column;gap:2px;padding:0 12px;}
+.side-nav a{
+  display:block;padding:10px 12px;border-radius:4px;text-decoration:none;
+  font-family:var(--font-mono);font-size:13px;color:var(--onnavy-soft);
+  border-left:2px solid transparent;transition:background .15s,color .15s;
+}
+.side-nav a:hover{background:var(--navy-soft);color:var(--onnavy);}
+.side-nav a.active{background:var(--navy-soft);color:var(--copper-bright);border-left-color:var(--copper-bright);}
+.sidebar-export{margin-top:auto;padding:14px 12px 0;border-top:1px solid var(--grid-line-strong);}
+.nav-export{position:relative;}
+.nav-export-btn{
+  width:100%;font-family:var(--font-mono);font-size:13px;color:var(--blue-accent);
+  background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:5px;padding:10px 12px;
+}
+.nav-export-btn:hover{color:var(--copper-bright);}
+.nav-export-caret{font-size:10px;transition:transform .15s;}
+.nav-export.open .nav-export-caret{transform:rotate(180deg);}
+.nav-export-menu{
+  display:none;position:absolute;bottom:calc(100% + 8px);left:0;right:0;min-width:200px;
+  background:var(--navy);border:1px solid var(--grid-line-strong);border-radius:4px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.35);overflow:hidden;z-index:60;
+}
+.nav-export.open .nav-export-menu{display:block;}
+.nav-export-menu button{
+  display:block;width:100%;text-align:left;font-family:var(--font-mono);font-size:12.5px;
+  color:var(--onnavy);background:none;border:none;cursor:pointer;padding:11px 14px;
+}
+.nav-export-menu button:hover{background:var(--navy-soft);color:var(--blue-accent);}
+.nav-export-menu button + button{border-top:1px solid var(--grid-line);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.nav-export-orient{padding:10px 14px 12px;border-bottom:1px solid var(--grid-line);}
+.nav-export-orient-label{display:block;font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--onnavy-soft);margin-bottom:8px;}
+.seg-sm{display:flex;border:1px solid var(--grid-line-strong);border-radius:3px;overflow:hidden;}
+.seg-sm button{
+  flex:1;padding:6px 4px;font-family:var(--font-mono);font-size:11.5px;background:none;color:var(--onnavy-soft);
+  border:none;cursor:pointer;transition:background .15s,color .15s;
+}
+.seg-sm button + button{border-left:1px solid var(--grid-line-strong);}
+.seg-sm button.active{background:var(--blue-accent);color:var(--navy-deep);font-weight:600;}
+@media(max-width:768px){
+  .app-shell{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:none;border-bottom:1px solid var(--grid-line-strong);padding:14px 16px;}
+  .sidebar .brand{padding:0 12px 0 0;}
+  .side-nav{flex-direction:row;flex-wrap:wrap;padding:0;}
+  .sidebar-export{margin-top:0;margin-left:auto;padding:0;border-top:none;}
+  .nav-export-menu{bottom:auto;top:calc(100% + 8px);left:auto;right:0;}
+}
+
+/* ---- crop-mark card ---- */
+.sheet{
+  position:relative;
+  background:var(--paper);
+  color:var(--ink);
+  border-radius:2px;
+  padding:40px;
+}
+.sheet::before,.sheet::after,.sheet .tick-tr,.sheet .tick-bl{
+  content:'';position:absolute;width:14px;height:14px;
+  border-color:var(--copper);border-style:solid;border-width:0;
+}
+.sheet::before{top:-1px;left:-1px;border-top-width:2px;border-left-width:2px;}
+.sheet::after{bottom:-1px;right:-1px;border-bottom-width:2px;border-right-width:2px;}
+.sheet .tick-tr{top:-1px;right:-1px;border-top-width:2px;border-right-width:2px;}
+.sheet .tick-bl{bottom:-1px;left:-1px;border-bottom-width:2px;border-left-width:2px;}
+@media(max-width:640px){.sheet{padding:26px 20px;}}
+
+/* ---- hero ---- */
+.hero{padding:80px 0 60px;}
+.eyebrow{font-family:var(--font-mono);font-size:12.5px;color:var(--copper-bright);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.eyebrow::before{content:'';width:22px;height:1px;background:var(--copper-bright);}
+h1.hero-title{font-family:var(--font-display);font-weight:600;font-size:clamp(34px,5vw,54px);line-height:1.08;margin:0 0 20px;color:var(--onnavy);letter-spacing:-0.01em;}
+h1.hero-title em{font-style:normal;color:var(--copper-bright);}
+.hero-sub{font-size:17px;color:var(--onnavy-soft);max-width:600px;margin:0 0 32px;}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;}
+.btn{
+  font-family:var(--font-mono);font-size:13.5px;font-weight:500;
+  padding:13px 22px;border-radius:2px;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;transition:transform .15s, background .15s;
+  border:1px solid transparent;cursor:pointer;
+}
+.btn-primary{background:var(--copper);color:#1B1006;}
+.btn-primary:hover{background:var(--copper-bright);transform:translateY(-1px);}
+.btn-ghost{border-color:var(--grid-line-strong);color:var(--onnavy);}
+.btn-ghost:hover{border-color:var(--copper-bright);color:var(--copper-bright);}
+.btn-export{background:var(--copper);border-color:var(--copper);color:#1B1006;font-weight:600;}
+.btn-export:hover{background:var(--copper-bright);border-color:var(--copper-bright);transform:translateY(-1px);}
+
+/* ---- section framing ---- */
+section{padding:64px 0;}
+.section-head{margin-bottom:32px;max-width:680px;}
+.section-num{font-family:var(--font-mono);font-size:12.5px;color:var(--copper-bright);letter-spacing:0.1em;margin-bottom:10px;}
+h2.section-title{font-family:var(--font-display);font-size:clamp(24px,3vw,32px);font-weight:600;margin:0 0 12px;color:var(--onnavy);}
+.section-sub{color:var(--onnavy-soft);font-size:15.5px;}
+
+/* ---- reference cards ---- */
+.ref-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:28px;align-items:start;}
+@media(max-width:800px){.ref-grid{grid-template-columns:1fr;}}
+.formula-box{
+  background:var(--navy-soft);border:1px solid var(--grid-line-strong);border-radius:4px;
+  padding:22px 24px;font-family:var(--font-mono);font-size:14.5px;color:var(--onnavy);
+  margin:18px 0;
+}
+.formula-box .fl{color:var(--copper-bright);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;display:block;}
+.formula-box .eq{font-size:17px;color:var(--paper);}
+.legend{list-style:none;padding:0;margin:14px 0 0;font-family:var(--font-mono);font-size:13px;color:var(--onnavy-soft);}
+.legend li{padding:4px 0;border-bottom:1px dashed var(--grid-line-strong);}
+.legend b{color:var(--copper-bright);font-weight:500;}
+.limit-card{background:var(--paper);color:var(--ink);border-radius:4px;padding:24px;border-left:3px solid var(--copper);}
+.limit-card h3{font-family:var(--font-display);margin:0 0 10px;font-size:16px;}
+.limit-list{display:flex;gap:16px;margin:16px 0 0;flex-wrap:wrap;}
+.limit-pill{font-family:var(--font-mono);font-size:13px;background:var(--paper-dim);padding:8px 14px;border-radius:20px;color:var(--ink);}
+.limit-pill b{color:var(--copper);}
+.citation{font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5;}
+
+/* ---- SLD signature diagram ---- */
+.sld-wrap{
+  background:var(--navy-soft);border:1px solid var(--grid-line-strong);border-radius:6px;
+  padding:28px 22px 22px;margin:36px 0;
+}
+.sld-label{font-family:var(--font-mono);font-size:12px;color:var(--onnavy-soft);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:18px;}
+#sld-svg{width:100%;height:auto;display:block;}
+.sld-node-title{font-family:var(--font-mono);font-size:11.5px;fill:var(--onnavy-soft);}
+.sld-node-val{font-family:var(--font-mono);font-size:13px;font-weight:600;fill:var(--paper);}
+.sld-node-val.pass{fill:var(--ground);}
+.sld-node-val.fail{fill:var(--fault);}
+
+/* ---- calculator ---- */
+.calc-panel{background:var(--paper);color:var(--ink);border-radius:6px;padding:32px;margin-top:8px;}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:640px){.calc-grid{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);letter-spacing:0.03em;}
+.field input,.field select{
+  font-family:var(--font-mono);font-size:14px;padding:11px 12px;border-radius:3px;
+  border:1px solid #C9C1AA;background:#FBFAF5;color:var(--ink);
+}
+.field input:focus,.field select:focus{outline:2px solid var(--copper);outline-offset:1px;}
+.seg{display:flex;border:1px solid #C9C1AA;border-radius:3px;overflow:hidden;}
+.seg button{
+  flex:1;padding:10px 8px;font-family:var(--font-mono);font-size:13px;background:#FBFAF5;color:var(--ink-soft);
+  border:none;cursor:pointer;border-right:1px solid #C9C1AA;transition:background .15s,color .15s;
+}
+.seg button:last-child{border-right:none;}
+.seg button.active{background:var(--copper);color:#1B1006;font-weight:600;}
+.results{margin-top:26px;padding-top:24px;border-top:1px dashed #C9C1AA;}
+.result-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font-family:var(--font-mono);font-size:14px;}
+.result-row .rk{color:var(--ink-soft);}
+.result-row .rv{font-weight:600;font-size:15px;}
+.verdict{
+  margin-top:16px;padding:14px 18px;border-radius:4px;font-family:var(--font-mono);font-size:13.5px;
+  display:flex;align-items:center;gap:10px;
+}
+.verdict.pass{background:rgba(94,140,97,0.14);color:#3E6A41;border:1px solid rgba(94,140,97,0.35);}
+.verdict.fail{background:rgba(189,74,62,0.12);color:#973B31;border:1px solid rgba(189,74,62,0.35);}
+.verdict .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.room-viz-wrap svg{width:100%;height:auto;display:block;}
+.room-viz-3d{perspective:1100px;padding:10px 0 34px;overflow:visible;}
+.room-viz-3d svg{transform:rotateX(48deg);transform-origin:50% 100%;box-shadow:0 30px 40px -20px rgba(0,0,0,0.5);border-radius:6px;}
+@keyframes fixtureGlow{0%,100%{opacity:0.55;}50%{opacity:1;}}
+.fixture-glow{animation:fixtureGlow 2.2s ease-in-out infinite;}
+@media (prefers-reduced-motion: reduce){.fixture-glow{animation:none;opacity:0.85;}}
+.verdict.pass .dot{background:var(--ground);}
+.verdict.fail .dot{background:var(--fault);}
+
+/* ---- step list ---- */
+.steps{list-style:none;padding:0;margin:20px 0 0;counter-reset:step;}
+.steps li{counter-increment:step;padding:14px 0 14px 42px;position:relative;border-bottom:1px solid var(--grid-line);font-size:14.5px;color:var(--onnavy-soft);}
+.steps li:last-child{border-bottom:none;}
+.steps li::before{
+  content:counter(step);position:absolute;left:0;top:12px;
+  width:26px;height:26px;border-radius:50%;background:var(--navy-soft);border:1px solid var(--copper);
+  color:var(--copper-bright);font-family:var(--font-mono);font-size:12px;display:flex;align-items:center;justify-content:center;
+}
+.steps b{color:var(--onnavy);font-weight:500;}
+
+/* ---- footer ---- */
+footer{padding:48px 0 60px;border-top:1px solid var(--grid-line-strong);margin-top:40px;}
+.disclaimer{font-family:var(--font-mono);font-size:12.5px;color:var(--onnavy-soft);max-width:720px;line-height:1.7;}
+.disclaimer b{color:var(--copper-bright);font-weight:500;}
+
+/* ---- printable report ---- */
+#print-report{display:none;}
+.rpt-h1{font-family:var(--font-display);font-size:22px;font-weight:600;margin:0 0 4px;}
+.rpt-meta{font-family:var(--font-mono);font-size:11.5px;color:#5B6472;margin:0 0 24px;}
+.rpt-section{margin-bottom:22px;page-break-inside:avoid;}
+.rpt-section h3{font-family:var(--font-display);font-size:15px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid #C9C1AA;}
+.rpt-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12.5px;padding:5px 0;border-bottom:1px dotted #D8D2BE;}
+.rpt-verdict{font-family:var(--font-mono);font-size:12px;margin-top:8px;padding:8px 10px;border-left:2px solid #BE7A3D;background:#F3EFE4;}
+.rpt-ls-table th,.rpt-ls-table td{border-right:1px solid #D8D2BE;}
+.rpt-ls-table th:last-child,.rpt-ls-table td:last-child{border-right:none;}
+@media print{
+  body > *:not(#print-report){display:none !important;}
+  body{background:#fff;}
+  #print-report{display:block;color:#1C2229;background:#fff;padding:0;font-family:var(--font-body);}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="2" stroke="#D89653" stroke-width="1.5"/><path d="M6 13H10.5L12 8L14 18L15.5 13H20" stroke="#D89653" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Circuit &amp; Drop
+  </div>
+  <nav class="side-nav">
+    <a href="#dashboard" data-tab="dashboard" class="active">Dashboard</a>
+    <a href="#vd-calc" data-tab="vd-calc">VD calculator</a>
+    <a href="#sc-calc" data-tab="sc-calc">SC calculator</a>
+    <a href="#load-schedule" data-tab="load-schedule">Load schedule</a>
+    <a href="#illum-calc" data-tab="illum-calc">Illumination</a>
+  </nav>
+  <div class="sidebar-export">
+    <div class="nav-export" id="nav-export">
+      <button class="nav-export-btn" id="nav-export-btn" type="button">Export <span class="nav-export-caret">▾</span></button>
+      <div class="nav-export-menu" id="nav-export-menu">
+        <div class="nav-export-orient">
+          <span class="nav-export-orient-label">PDF orientation</span>
+          <div class="seg seg-sm" id="pdf-orient-seg">
+            <button type="button" class="active" data-val="landscape">Landscape</button>
+            <button type="button" data-val="portrait">Portrait</button>
+          </div>
+        </div>
+        <button type="button" id="export-btn">Export report (PDF)</button>
+        <button type="button" id="export-xlsx-btn">Export Excel (.xlsx)</button>
+        <button type="button" id="export-dxf-btn" title="Exports DXF — the open CAD exchange format. Open in AutoCAD/LibreCAD and Save As DWG if you need that extension specifically.">Export CAD (.dxf)</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="main-content">
+<div class="wrap">
+  <div class="tab-panel active" data-tab="dashboard">
+  <section class="hero">
+    <div class="eyebrow">Residential branch &amp; feeder design</div>
+    <h1 class="hero-title">Electrical Design Analysis</h1>
+  </section>
+
+  <section class="sld-wrap">
+    <div class="sld-label" style="margin-bottom:18px;">Live single-line diagram — updates as you calculate below</div>
+    <svg id="sld-svg" viewBox="0 0 980 220" xmlns="http://www.w3.org/2000/svg">
+      <line x1="70" y1="110" x2="910" y2="110" stroke="#3A4B63" stroke-width="2"/>
+      <g id="node-xfmr">
+        <circle cx="70" cy="110" r="26" fill="none" stroke="#93A0B3" stroke-width="1.5"/>
+        <path d="M60 100 Q70 90 80 100 M60 110 Q70 100 80 110 M60 120 Q70 110 80 120" stroke="#93A0B3" stroke-width="1.3" fill="none"/>
+        <text x="70" y="152" text-anchor="middle" class="sld-node-title">UTILITY XFMR</text>
+        <text x="70" y="170" text-anchor="middle" class="sld-node-val" id="v-xfmr">— kA</text>
+      </g>
+      <g id="node-service">
+        <rect x="290" y="94" width="32" height="32" fill="none" stroke="#93A0B3" stroke-width="1.5"/>
+        <text x="306" y="152" text-anchor="middle" class="sld-node-title">SERVICE ENTR.</text>
+        <text x="306" y="170" text-anchor="middle" class="sld-node-val" id="v-service">— %VD</text>
+      </g>
+      <g id="node-panel">
+        <rect x="540" y="86" width="40" height="48" fill="none" stroke="#93A0B3" stroke-width="1.5"/>
+        <line x1="540" y1="102" x2="580" y2="102" stroke="#93A0B3" stroke-width="1"/>
+        <line x1="540" y1="118" x2="580" y2="118" stroke="#93A0B3" stroke-width="1"/>
+        <text x="560" y="152" text-anchor="middle" class="sld-node-title">MAIN PANEL</text>
+        <text x="560" y="170" text-anchor="middle" class="sld-node-val" id="v-panel">— kA</text>
+      </g>
+      <g id="node-branch">
+        <circle cx="880" cy="110" r="5" fill="#93A0B3"/>
+        <path d="M860 95 L900 125 M900 95 L860 125" stroke="#93A0B3" stroke-width="1.3"/>
+        <text x="880" y="152" text-anchor="middle" class="sld-node-title">BRANCH LOAD</text>
+        <text x="880" y="170" text-anchor="middle" class="sld-node-val" id="v-branch">— %VD</text>
+        <text x="880" y="186" text-anchor="middle" class="sld-node-val" id="v-branch-fault" font-size="11">— kA</text>
+      </g>
+    </svg>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="vd-calc">
+  <section id="voltage-drop-ref">
+    <div class="section-head">
+      <div class="section-num">01 — Reference</div>
+      <h2 class="section-title">Voltage drop</h2>
+      <p class="section-sub">Every conductor has resistance, so voltage is lost as current travels down its length. Too much loss and lights dim, motors labor, and electronics misbehave — even though the panel is delivering full voltage.</p>
+    </div>
+    <div class="ref-grid">
+      <div>
+        <div class="formula-box">
+          <span class="fl">Single-phase</span>
+          <span class="eq">VD = (2 × K × I × L) / CM</span>
+        </div>
+        <div class="formula-box">
+          <span class="fl">Three-phase</span>
+          <span class="eq">VD = (1.732 × K × I × L) / CM</span>
+        </div>
+        <ul class="legend">
+          <li><b>K</b> — resistivity constant: 12.9 for copper, 21.2 for aluminum</li>
+          <li><b>I</b> — load current, amperes</li>
+          <li><b>L</b> — one-way conductor length, feet</li>
+          <li><b>CM</b> — conductor cross-section, circular mils</li>
+        </ul>
+      </div>
+      <div class="limit-card">
+        <h3>Recommended limits</h3>
+        <p style="font-size:14px;margin:0;">PEC/NEC 210.19(A) and 215.2(A), Informational Note, recommend keeping total voltage drop within:</p>
+        <div class="limit-list">
+          <div class="limit-pill"><b>3%</b> branch circuit alone</div>
+          <div class="limit-pill"><b>3%</b> feeder alone</div>
+          <div class="limit-pill"><b>5%</b> combined, feeder + branch</div>
+        </div>
+        <p class="citation">These are advisory design targets, not hard violations by themselves — but exceeding them is treated as a design deficiency in practice, and some AHJs enforce them as mandatory.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="vd-calc">
+    <div class="section-head">
+      <div class="section-num">02 — Calculator</div>
+      <h2 class="section-title">Voltage drop calculator</h2>
+      <p class="section-sub">Stage 1 covers source → panel (feeder / service entrance). Optionally continue to Stage 2 for panel → farthest load (branch circuit), and see the combined drop. Feeds the service and branch nodes on the diagram above.</p>
+    </div>
+    <div class="calc-panel">
+      <div class="calc-grid">
+        <div class="field">
+          <label>System</label>
+          <div class="seg" id="vd-phase-seg">
+            <button data-val="1" class="active">Single-phase</button>
+            <button data-val="3">Three-phase</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="vd-voltage">System voltage (V)</label>
+          <input type="number" id="vd-voltage" value="230">
+        </div>
+        <div class="field">
+          <label for="vd-current">Stage 1 — Load current, source to panel (A)</label>
+          <input type="number" id="vd-current" value="40">
+        </div>
+        <div class="field">
+          <label for="vd-length">Stage 1 — One-way length, source to panel (meters)</label>
+          <input type="number" id="vd-length" value="25">
+        </div>
+        <div class="field">
+          <label for="vd-material">Stage 1 — Conductor material</label>
+          <select id="vd-material">
+            <option value="copper">Copper</option>
+            <option value="aluminum">Aluminum</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="vd-size">Stage 1 — Conductor size</label>
+          <select id="vd-size"></select>
+        </div>
+      </div>
+      <div class="results">
+        <div class="result-row"><span class="rk">Voltage drop (service / feeder)</span><span class="rv" id="vd-out-vd">— V</span></div>
+        <div class="result-row"><span class="rk">Percent drop (service / feeder)</span><span class="rv" id="vd-out-pct">— %</span></div>
+        <div class="verdict pass" id="vd-verdict"><span class="dot"></span><span id="vd-verdict-text">Enter values to check against PEC/NEC limits.</span></div>
+      </div>
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px dashed #C9C1AA;">
+        <div class="field" style="max-width:340px;">
+          <label>Continue past the panel to a farthest branch load?</label>
+          <div class="seg" id="vd-ds-seg">
+            <button data-val="off" class="active">Off</button>
+            <button data-val="on">On</button>
+          </div>
+        </div>
+        <p class="citation" style="margin:10px 0 0;">Stage 2 covers panel → farthest outlet/fixture. The combined drop below sums Stage 1 + Stage 2 and checks it against the 5% combined limit.</p>
+
+        <div id="vd-ds-fields" class="calc-grid" style="margin-top:16px;display:none;">
+          <div class="field">
+            <label for="vd-ds-current">Stage 2 — Load current, panel to farthest load (A)</label>
+            <input type="number" id="vd-ds-current" value="15">
+          </div>
+          <div class="field">
+            <label for="vd-ds-length">Stage 2 — One-way length, panel to farthest load (meters)</label>
+            <input type="number" id="vd-ds-length" value="20">
+          </div>
+          <div class="field">
+            <label for="vd-ds-material">Stage 2 — Conductor material</label>
+            <select id="vd-ds-material">
+              <option value="copper">Copper</option>
+              <option value="aluminum">Aluminum</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="vd-ds-size">Stage 2 — Conductor size</label>
+            <select id="vd-ds-size"></select>
+          </div>
+        </div>
+
+        <div class="results" id="vd-ds-results" style="display:none;">
+          <div class="result-row"><span class="rk">Voltage drop (branch)</span><span class="rv" id="vd-ds-out-vd">— V</span></div>
+          <div class="result-row"><span class="rk">Percent drop (branch)</span><span class="rv" id="vd-ds-out-pct">— %</span></div>
+          <div class="verdict pass" id="vd-ds-verdict"><span class="dot"></span><span id="vd-ds-verdict-text">—</span></div>
+          <div class="result-row" style="margin-top:10px;"><span class="rk">Combined drop (service + branch)</span><span class="rv" id="vd-combined-pct">— %</span></div>
+          <div class="verdict pass" id="vd-combined-verdict"><span class="dot"></span><span id="vd-combined-verdict-text">—</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="sc-calc">
+  <section id="short-circuit-ref">
+    <div class="section-head">
+      <div class="section-num">03 — Reference</div>
+      <h2 class="section-title">Short circuit / fault current</h2>
+      <p class="section-sub">Every breaker and panel has an interrupting rating — the maximum fault current it can safely clear. PEC/NEC 110.9 and 110.10 require that rating to meet or exceed the fault current actually available at that point in the system.</p>
+    </div>
+    <ol class="steps">
+      <li><b>Available fault current at the transformer</b> — derived from transformer kVA and percent impedance: I<sub>fault</sub> = (I<sub>FLA</sub> × 100) / %Z</li>
+      <li><b>Reduce it for conductor impedance</b> — the point-to-point "f-factor" accounts for how much the feeder or branch conductor itself limits fault current: f = (1.732 × L × I) / (C × N × V) for three-phase</li>
+      <li><b>Apply the multiplier</b> — M = 1 / (1 + f), then I<sub>downstream</sub> = I<sub>upstream</sub> × M</li>
+      <li><b>Compare to breaker AIC rating</b> — the interrupting rating at that point must be ≥ the calculated available fault current</li>
+    </ol>
+    <div class="formula-box" style="margin-top:24px;">
+      <span class="fl">Point-to-point f-factor</span>
+      <span class="eq">f = (1.732 × L × I) / (C × N × V)  — three-phase</span><br>
+      <span class="eq" style="font-size:14px;">f = (2 × L × I) / (C × N × V)  — single-phase</span>
+    </div>
+    <p class="citation" style="max-width:680px;">C is a conductor constant from standard point-to-point tables (varies by size and material); N is the number of parallel conductors per phase. The values used in the calculator below are typical reference figures — confirm against the current PEC/Bussmann point-to-point tables before finalizing a real design.</p>
+  </section>
+
+  <section id="sc-calc">
+    <div class="section-head">
+      <div class="section-num">04 — Calculator</div>
+      <h2 class="section-title">Short circuit calculator</h2>
+      <p class="section-sub">Chains transformer → feeder → panel → (optionally) a downstream branch point. Feeds the transformer, panel, and branch nodes on the diagram above.</p>
+    </div>
+    <div class="calc-panel">
+      <div class="calc-grid">
+        <div class="field">
+          <label>System</label>
+          <div class="seg" id="sc-phase-seg">
+            <button data-val="1">Single-phase</button>
+            <button data-val="3" class="active">Three-phase</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="sc-voltage">System voltage (V)</label>
+          <input type="number" id="sc-voltage" value="230">
+        </div>
+        <div class="field">
+          <label for="sc-kva">Transformer size (kVA)</label>
+          <input type="number" id="sc-kva" value="50">
+        </div>
+        <div class="field">
+          <label for="sc-z">Transformer impedance (%Z)</label>
+          <input type="number" id="sc-z" value="2" step="0.1">
+        </div>
+        <div class="field">
+          <label for="sc-length">Feeder length to panel (meters)</label>
+          <input type="number" id="sc-length" value="15">
+        </div>
+        <div class="field">
+          <label for="sc-material">Conductor material</label>
+          <select id="sc-material">
+            <option value="copper">Copper</option>
+            <option value="aluminum">Aluminum</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label for="sc-size">Feeder conductor size</label>
+          <select id="sc-size"></select>
+        </div>
+      </div>
+      <div class="results">
+        <div class="result-row"><span class="rk">Transformer full-load amps</span><span class="rv" id="sc-out-fla">— A</span></div>
+        <div class="result-row"><span class="rk">Fault current at transformer</span><span class="rv" id="sc-out-xfmr">— A</span></div>
+        <div class="result-row"><span class="rk">Fault current at panel</span><span class="rv" id="sc-out-panel">— A</span></div>
+        <div class="result-row"><span class="rk">Minimum breaker AIC required (panel)</span><span class="rv" id="sc-out-aic">— kA</span></div>
+        <div class="verdict pass" id="sc-verdict"><span class="dot"></span><span id="sc-verdict-text">Enter values to see the recommended breaker rating.</span></div>
+      </div>
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px dashed #C9C1AA;">
+        <div class="field" style="max-width:340px;">
+          <label>Continue past the panel to a downstream point?</label>
+          <div class="seg" id="sc-ds-seg">
+            <button data-val="off" class="active">Off</button>
+            <button data-val="on">On</button>
+          </div>
+        </div>
+        <p class="citation" style="margin:10px 0 0;">Use this to check the AIC rating needed at a sub-panel, junction, or the farthest outlet on a branch circuit — the conductor beyond the panel further limits fault current.</p>
+
+        <div id="sc-ds-fields" class="calc-grid" style="margin-top:16px;display:none;">
+          <div class="field">
+            <label for="sc-ds-length">Conductor length, panel to point (meters)</label>
+            <input type="number" id="sc-ds-length" value="10">
+          </div>
+          <div class="field">
+            <label for="sc-ds-material">Conductor material</label>
+            <select id="sc-ds-material">
+              <option value="copper">Copper</option>
+              <option value="aluminum">Aluminum</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="sc-ds-size">Conductor size</label>
+            <select id="sc-ds-size"></select>
+          </div>
+        </div>
+
+        <div class="results" id="sc-ds-results" style="display:none;">
+          <div class="result-row"><span class="rk">Fault current at downstream point</span><span class="rv" id="sc-out-ds">— A</span></div>
+          <div class="result-row"><span class="rk">Minimum breaker AIC required (downstream)</span><span class="rv" id="sc-out-ds-aic">— kA</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="load-schedule">
+  <section id="load-schedule">
+    <div class="section-head">
+      <div class="section-num">05 — Worksheet</div>
+      <h2 class="section-title">Panelboard load schedule</h2>
+      <p class="section-sub">Build out the branch circuit schedule for a panel. Breaker, wire, and conduit sizes are suggested automatically from the load, and you can override any of them by hand.</p>
+    </div>
+    <div class="calc-panel">
+      <div class="calc-grid" style="margin-bottom:10px;">
+        <div class="field" style="grid-column:1/-1;">
+          <label for="ls-panel-name">Panelboard name / ID</label>
+          <input type="text" id="ls-panel-name" placeholder="e.g. Panel A — Main Distribution" value="Panel A">
+        </div>
+        <div class="field">
+          <label for="ls-system">System</label>
+          <select id="ls-system">
+            <option value="1-230" selected>Single-phase (230V)</option>
+            <option value="1-240">Single-phase (240V)</option>
+            <option value="3-230">Three-phase (230V)</option>
+            <option value="3-400">Three-phase (400V)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ls-bus">Panel bus rating (A)</label>
+          <select id="ls-bus">
+            <option>60</option><option>100</option><option selected>125</option><option>150</option><option>200</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table id="ls-table" style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13px;">
+          <thead>
+            <tr style="border-bottom:1px solid #C9C1AA;">
+              <th style="text-align:left;padding:8px 6px;">Ckt</th>
+              <th style="text-align:left;padding:8px 6px;">Description</th>
+              <th style="text-align:left;padding:8px 6px;">Qty</th>
+              <th style="text-align:left;padding:8px 6px;">Load (VA)</th>
+              <th style="text-align:left;padding:8px 6px;">Load (A)</th>
+              <th style="text-align:left;padding:8px 6px;">Breaker</th>
+              <th style="text-align:left;padding:8px 6px;">Wire size</th>
+              <th style="text-align:left;padding:8px 6px;">Ground wire</th>
+              <th style="text-align:left;padding:8px 6px;">Conduit size</th>
+              <th style="text-align:left;padding:8px 6px;">Conduit material</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ls-tbody"></tbody>
+        </table>
+      </div>
+
+      <button class="btn btn-export" id="ls-add" style="margin-top:14px;padding:9px 16px;font-size:12.5px;">+ Add circuit</button>
+
+      <div class="results">
+        <div class="result-row"><span class="rk">Total connected load</span><span class="rv" id="ls-total-va">— VA</span></div>
+        <div class="result-row"><span class="rk">Estimated main current (100%)</span><span class="rv" id="ls-total-a">— A</span></div>
+        <div class="result-row"><span class="rk">Demand load (80% of connected)</span><span class="rv" id="ls-demand-va">— VA</span></div>
+        <div class="result-row"><span class="rk">Demand current</span><span class="rv" id="ls-demand-a">— A</span></div>
+        <div class="verdict pass" id="ls-verdict"><span class="dot"></span><span id="ls-verdict-text">Add circuits to check against the panel bus rating.</span></div>
+      </div>
+
+      <div style="margin-top:28px;padding-top:22px;border-top:1px dashed #C9C1AA;">
+        <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 4px;">Feeder / main equipment</h3>
+        <p class="citation" style="margin:0 0 14px;">Sized off the 80% demand current above (editable — auto-suggestions stop once you change a field by hand).</p>
+        <div class="calc-grid">
+          <div class="field">
+            <label for="ls-feeder-breaker">Main breaker</label>
+            <select id="ls-feeder-breaker"></select>
+          </div>
+          <div class="field">
+            <label for="ls-feeder-wire">Feeder wire size</label>
+            <select id="ls-feeder-wire"></select>
+          </div>
+          <div class="field">
+            <label for="ls-feeder-ground">Feeder ground wire</label>
+            <select id="ls-feeder-ground"></select>
+          </div>
+          <div class="field">
+            <label for="ls-feeder-conduit">Feeder conduit size</label>
+            <select id="ls-feeder-conduit"></select>
+          </div>
+          <div class="field">
+            <label for="ls-feeder-conduit-material">Feeder conduit material</label>
+            <select id="ls-feeder-conduit-material"></select>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-export" id="ls-push-vd" style="margin-top:16px;padding:9px 16px;font-size:12.5px;">Use demand current in voltage drop calculator ↑</button>
+      <p class="citation" style="margin-top:14px;">Wire, ground, and conduit suggestions are rule-of-thumb reference sizes (THHN copper, 2–3 conductors per conduit). Breaker suggestions target ≤80% continuous loading per PEC/NEC 210.19/210.20/215.2. Verify actual conduit fill and conductor ampacity against the current PEC tables before finalizing.</p>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="illum-calc">
+  <section id="illumination-ref">
+    <div class="section-head">
+      <div class="section-num">06 — Reference</div>
+      <h2 class="section-title">Illumination</h2>
+      <p class="section-sub">The lumen method estimates average illuminance across a room from luminaire output, room area, and how efficiently the space uses that light.</p>
+    </div>
+    <div class="ref-grid">
+      <div>
+        <div class="formula-box">
+          <span class="fl">Average illuminance</span>
+          <span class="eq">E = (N × F × UF × LLF) / A</span>
+        </div>
+        <ul class="legend">
+          <li><b>E</b> — average illuminance, lux (lm/m²)</li>
+          <li><b>N</b> — number of luminaires</li>
+          <li><b>F</b> — lumen output per luminaire, lm</li>
+          <li><b>UF</b> — utilization factor (fixture + room reflectance efficiency), typically 0.4–0.7</li>
+          <li><b>LLF</b> — light loss / maintenance factor, typically 0.7–0.85</li>
+          <li><b>A</b> — room area, m²</li>
+        </ul>
+      </div>
+      <div class="limit-card">
+        <h3>Typical target levels</h3>
+        <p style="font-size:14px;margin:0;">Common residential design targets — confirm against project requirements or the current PEC illumination guidance:</p>
+        <div class="limit-list">
+          <div class="limit-pill"><b>100–150 lx</b> bedroom</div>
+          <div class="limit-pill"><b>150–300 lx</b> living / dining</div>
+          <div class="limit-pill"><b>300–500 lx</b> kitchen</div>
+          <div class="limit-pill"><b>150–200 lx</b> bathroom</div>
+          <div class="limit-pill"><b>100–150 lx</b> garage / utility</div>
+          <div class="limit-pill"><b>300–500 lx</b> reading / study</div>
+        </div>
+        <p class="citation">These are typical reference targets, not code minimums — verify against project specs or the current PEC before finalizing a design.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="illum-calc">
+    <div class="section-head">
+      <div class="section-num">07 — Calculator</div>
+      <h2 class="section-title">Illumination calculator</h2>
+      <p class="section-sub">Solve for average illuminance given a fixture count, or for the number of fixtures needed to hit a target lux level.</p>
+    </div>
+    <div class="calc-panel">
+      <div class="calc-grid">
+        <div class="field">
+          <label>Solve for</label>
+          <div class="seg" id="illum-mode-seg">
+            <button data-val="lux" class="active">Illuminance</button>
+            <button data-val="fixtures">Fixture count</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="illum-length">Room length (m)</label>
+          <input type="number" id="illum-length" value="4">
+        </div>
+        <div class="field">
+          <label for="illum-width">Room width (m)</label>
+          <input type="number" id="illum-width" value="3.5">
+        </div>
+        <div class="field">
+          <label for="illum-lumens">Luminaire output (lm) per fixture</label>
+          <input type="number" id="illum-lumens" value="3000">
+        </div>
+        <div class="field">
+          <label for="illum-watts">Luminaire wattage (W) per fixture</label>
+          <input type="number" id="illum-watts" value="20">
+        </div>
+        <div class="field">
+          <label for="illum-uf">Utilization factor (0–1)</label>
+          <input type="number" id="illum-uf" value="0.6" step="0.05">
+        </div>
+        <div class="field">
+          <label for="illum-llf">Light loss factor (0–1)</label>
+          <input type="number" id="illum-llf" value="0.8" step="0.05">
+        </div>
+        <div class="field">
+          <label for="illum-ceil-h">Ceiling / mounting height (m)</label>
+          <input type="number" id="illum-ceil-h" value="2.4" step="0.1">
+        </div>
+        <div class="field">
+          <label for="illum-wp-h">Working plane height (m)</label>
+          <input type="number" id="illum-wp-h" value="0.75" step="0.05">
+        </div>
+        <div class="field" id="illum-n-field">
+          <label for="illum-n">Number of fixtures</label>
+          <input type="number" id="illum-n" value="6">
+        </div>
+        <div class="field" id="illum-target-field">
+          <label for="illum-target" id="illum-target-label">Compare against target (lux)</label>
+          <input type="number" id="illum-target" value="300">
+        </div>
+      </div>
+      <div class="results">
+        <div class="result-row"><span class="rk">Room area</span><span class="rv" id="illum-out-area">— m²</span></div>
+        <div class="result-row" id="illum-row-fixtures" style="display:none;"><span class="rk">Fixtures required</span><span class="rv" id="illum-out-fixtures">—</span></div>
+        <div class="result-row"><span class="rk">Average illuminance</span><span class="rv" id="illum-out-lux">— lux</span></div>
+        <div class="result-row"><span class="rk">Total connected wattage</span><span class="rv" id="illum-out-watts">— W</span></div>
+        <div class="result-row"><span class="rk">Estimated VA (PF ≈ 1)</span><span class="rv" id="illum-out-va">— VA</span></div>
+        <div class="verdict pass" id="illum-verdict"><span class="dot"></span><span id="illum-verdict-text">Enter values to compare against the target.</span></div>
+      </div>
+
+      <div class="room-viz-wrap" style="margin-top:24px;padding-top:20px;border-top:1px dashed #C9C1AA;">
+        <div class="section-num" style="margin-bottom:8px;">Room preview — illuminance heatmap</div>
+        <div id="illum-room-viz"></div>
+        <div id="illum-viz-legend" style="display:flex;align-items:center;gap:10px;margin-top:12px;font-family:var(--font-mono);font-size:11.5px;color:var(--onnavy-soft);"></div>
+        <p class="citation" style="margin-top:10px;">Modeled point-by-point from each fixture, using ceiling height minus working plane height as the effective mounting height, then scaled to match the average illuminance above — an illustrative approximation of hot/dark spots, not a certified point-by-point photometric study.</p>
+      </div>
+      <button class="btn btn-export" id="illum-push-ls" style="margin-top:16px;padding:9px 16px;font-size:12.5px;">Push lighting VA to load schedule ↓</button>
+      <p class="citation" style="margin-top:14px;">Utilization and light loss factors depend on fixture optics, mounting height, and room surface reflectance — the defaults are rough starting points, not manufacturer photometric data. Adds a lighting circuit sized off total connected wattage, assuming PF ≈ 1.</p>
+    </div>
+  </section>
+  </div>
+
+  <footer>
+    <p class="disclaimer"><b>Reference tool, not a stamped calculation.</b> Conductor resistance, circular-mil, and point-to-point C-value figures used here are standard textbook approximations for 75°C copper and aluminum conductors. Always verify against the current edition of the Philippine Electrical Code (or NEC, where applicable) and consult a licensed Professional Electrical Engineer before finalizing service, feeder, or breaker sizing on an actual installation.</p>
+  </footer>
+</div>
+</main>
+</div>
+
+<div id="print-report"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const conductorData = [
+  {size:'14 AWG', cm:4110, c:389},
+  {size:'12 AWG', cm:6530, c:617},
+  {size:'10 AWG', cm:10380, c:981},
+  {size:'8 AWG', cm:16510, c:1557},
+  {size:'6 AWG', cm:26240, c:2425},
+  {size:'4 AWG', cm:41740, c:3806},
+  {size:'3 AWG', cm:52620, c:4674},
+  {size:'2 AWG', cm:66360, c:5907},
+  {size:'1 AWG', cm:83690, c:7293},
+  {size:'1/0 AWG', cm:105600, c:8925},
+  {size:'2/0 AWG', cm:133100, c:11185},
+  {size:'3/0 AWG', cm:167800, c:14007},
+  {size:'4/0 AWG', cm:211600, c:17635},
+  {size:'250 kcmil', cm:250000, c:20890},
+  {size:'300 kcmil', cm:300000, c:25000},
+  {size:'350 kcmil', cm:350000, c:28942},
+  {size:'400 kcmil', cm:400000, c:32842},
+  {size:'500 kcmil', cm:500000, c:39533},
+];
+const AIC_RATINGS = [10000,14000,22000,25000,42000,65000,100000,200000];
+
+function populateSizeSelect(sel, defaultIndex){
+  sel.innerHTML = conductorData.map((c,i)=>`<option value="${i}" ${i===defaultIndex?'selected':''}>${c.size}</option>`).join('');
+}
+populateSizeSelect(document.getElementById('vd-size'), 7);
+populateSizeSelect(document.getElementById('vd-ds-size'), 5);
+populateSizeSelect(document.getElementById('sc-size'), 12);
+populateSizeSelect(document.getElementById('sc-ds-size'), 7);
+
+function setupSeg(id, onChange){
+  const el = document.getElementById(id);
+  el.addEventListener('click', e=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    [...el.children].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    onChange();
+  });
+  return ()=> el.querySelector('.active').dataset.val;
+}
+const getVdPhase = setupSeg('vd-phase-seg', ()=>runVD());
+const getVdDownstream = setupSeg('vd-ds-seg', ()=>{
+  const on = getVdDownstream() === 'on';
+  document.getElementById('vd-ds-fields').style.display = on ? 'grid' : 'none';
+  document.getElementById('vd-ds-results').style.display = on ? 'block' : 'none';
+  runVD();
+});
+const getScPhase = setupSeg('sc-phase-seg', ()=>runSC());
+const getScDownstream = setupSeg('sc-ds-seg', ()=>{
+  const on = getScDownstream() === 'on';
+  document.getElementById('sc-ds-fields').style.display = on ? 'grid' : 'none';
+  document.getElementById('sc-ds-results').style.display = on ? 'block' : 'none';
+  runSC();
+});
+
+const sldState = {xfmrKA:null, serviceVD:null, panelKA:null, branchVD:null, branchKA:null};
+
+function setNodeVal(id, text, cls){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.remove('pass','fail');
+  if(cls) el.classList.add(cls);
+}
+
+function runVD(){
+  const phase = getVdPhase();
+  const V = parseFloat(document.getElementById('vd-voltage').value) || 0;
+  const I = parseFloat(document.getElementById('vd-current').value) || 0;
+  const Lm = parseFloat(document.getElementById('vd-length').value) || 0;
+  const material = document.getElementById('vd-material').value;
+  const sizeIdx = parseInt(document.getElementById('vd-size').value);
+  const K = material === 'copper' ? 12.9 : 21.2;
+  const Lft = Lm * 3.28084;
+  const cm = conductorData[sizeIdx].cm;
+  const mult = phase === '1' ? 2 : 1.732;
+  const vd = V > 0 ? (mult * K * I * Lft) / cm : 0;
+  const pct = V > 0 ? (vd / V) * 100 : 0;
+
+  document.getElementById('vd-out-vd').textContent = vd.toFixed(2) + ' V';
+  document.getElementById('vd-out-pct').textContent = pct.toFixed(2) + ' %';
+
+  const limit = 3;
+  const verdict = document.getElementById('vd-verdict');
+  const text = document.getElementById('vd-verdict-text');
+  const pass = pct <= limit;
+  verdict.classList.toggle('pass', pass);
+  verdict.classList.toggle('fail', !pass);
+  text.textContent = pass
+    ? `Within the ${limit}% single-run guideline. ${conductorData[sizeIdx].size} ${material} is adequate.`
+    : `Exceeds the ${limit}% single-run guideline — upsize the conductor or shorten the run.`;
+
+  sldState.serviceVD = pct;
+  setNodeVal('v-service', pct.toFixed(1)+'% VD', pass?'pass':'fail');
+
+  if(getVdDownstream() === 'on'){
+    const dsI = parseFloat(document.getElementById('vd-ds-current').value) || 0;
+    const dsLm = parseFloat(document.getElementById('vd-ds-length').value) || 0;
+    const dsMaterial = document.getElementById('vd-ds-material').value;
+    const dsSizeIdx = parseInt(document.getElementById('vd-ds-size').value);
+    const dsK = dsMaterial === 'copper' ? 12.9 : 21.2;
+    const dsLft = dsLm * 3.28084;
+    const dsCm = conductorData[dsSizeIdx].cm;
+    const dsVd = V > 0 ? (mult * dsK * dsI * dsLft) / dsCm : 0;
+    const dsPct = V > 0 ? (dsVd / V) * 100 : 0;
+
+    document.getElementById('vd-ds-out-vd').textContent = dsVd.toFixed(2) + ' V';
+    document.getElementById('vd-ds-out-pct').textContent = dsPct.toFixed(2) + ' %';
+
+    const dsVerdict = document.getElementById('vd-ds-verdict');
+    const dsText = document.getElementById('vd-ds-verdict-text');
+    const dsPass = dsPct <= limit;
+    dsVerdict.classList.toggle('pass', dsPass);
+    dsVerdict.classList.toggle('fail', !dsPass);
+    dsText.textContent = dsPass
+      ? `Within the ${limit}% single-run guideline. ${conductorData[dsSizeIdx].size} ${dsMaterial} is adequate.`
+      : `Exceeds the ${limit}% single-run guideline — upsize the conductor or shorten the run.`;
+
+    sldState.branchVD = dsPct;
+    setNodeVal('v-branch', dsPct.toFixed(1)+'% VD', dsPass?'pass':'fail');
+
+    const combinedPct = pct + dsPct;
+    document.getElementById('vd-combined-pct').textContent = combinedPct.toFixed(2) + ' %';
+    const combinedVerdict = document.getElementById('vd-combined-verdict');
+    const combinedText = document.getElementById('vd-combined-verdict-text');
+    const combinedLimit = 5;
+    const combinedPass = combinedPct <= combinedLimit;
+    combinedVerdict.classList.toggle('pass', combinedPass);
+    combinedVerdict.classList.toggle('fail', !combinedPass);
+    combinedText.textContent = combinedPass
+      ? `Within the ${combinedLimit}% combined feeder + branch guideline.`
+      : `Exceeds the ${combinedLimit}% combined feeder + branch guideline — upsize a conductor or shorten a run.`;
+  } else {
+    sldState.branchVD = null;
+    setNodeVal('v-branch', '— %VD', null);
+  }
+}
+
+function runSC(){
+  const phase = getScPhase();
+  const V = parseFloat(document.getElementById('sc-voltage').value) || 0;
+  const kva = parseFloat(document.getElementById('sc-kva').value) || 0;
+  const pctZ = parseFloat(document.getElementById('sc-z').value) || 0.01;
+  const Lm = parseFloat(document.getElementById('sc-length').value) || 0;
+  const material = document.getElementById('sc-material').value;
+  const sizeIdx = parseInt(document.getElementById('sc-size').value);
+  const Lft = Lm * 3.28084;
+
+  const fla = V > 0 ? (kva*1000) / (phase==='3' ? (1.732*V) : V) : 0;
+  const iXfmr = pctZ > 0 ? (fla*100)/pctZ : 0;
+
+  let C = conductorData[sizeIdx].c;
+  if(material === 'aluminum') C = C * 0.61;
+  const N = 1;
+  const f = (V>0 && C>0) ? (phase==='3' ? (1.732*Lft*iXfmr) : (2*Lft*iXfmr)) / (C*N*V) : 0;
+  const M = 1/(1+f);
+  const iPanel = iXfmr * M;
+
+  document.getElementById('sc-out-fla').textContent = fla.toFixed(1) + ' A';
+  document.getElementById('sc-out-xfmr').textContent = Math.round(iXfmr).toLocaleString() + ' A';
+  document.getElementById('sc-out-panel').textContent = Math.round(iPanel).toLocaleString() + ' A';
+
+  const required = AIC_RATINGS.find(r => r >= iPanel) || AIC_RATINGS[AIC_RATINGS.length-1];
+  document.getElementById('sc-out-aic').textContent = (required/1000) + ' kA';
+
+  const verdict = document.getElementById('sc-verdict');
+  const text = document.getElementById('sc-verdict-text');
+  const ok = iPanel < 200000;
+  verdict.classList.toggle('pass', ok);
+  verdict.classList.toggle('fail', !ok);
+  text.textContent = ok
+    ? `Specify a main breaker and panel busbar rated at least ${(required/1000)} kA interrupting/withstand.`
+    : `Fault current exceeds standard residential breaker ratings — review transformer sizing or add current-limiting protection.`;
+
+  sldState.xfmrKA = iXfmr/1000;
+  sldState.panelKA = iPanel/1000;
+  setNodeVal('v-xfmr', sldState.xfmrKA.toFixed(1)+' kA', null);
+  setNodeVal('v-panel', sldState.panelKA.toFixed(1)+' kA', iPanel <= required ? 'pass':'fail');
+
+  if(getScDownstream() === 'on'){
+    const dsLm = parseFloat(document.getElementById('sc-ds-length').value) || 0;
+    const dsMaterial = document.getElementById('sc-ds-material').value;
+    const dsSizeIdx = parseInt(document.getElementById('sc-ds-size').value);
+    const dsLft = dsLm * 3.28084;
+    let dsC = conductorData[dsSizeIdx].c;
+    if(dsMaterial === 'aluminum') dsC = dsC * 0.61;
+    const dsF = (V>0 && dsC>0) ? (phase==='3' ? (1.732*dsLft*iPanel) : (2*dsLft*iPanel)) / (dsC*N*V) : 0;
+    const dsM = 1/(1+dsF);
+    const iDownstream = iPanel * dsM;
+    const dsRequired = AIC_RATINGS.find(r => r >= iDownstream) || AIC_RATINGS[AIC_RATINGS.length-1];
+
+    document.getElementById('sc-out-ds').textContent = Math.round(iDownstream).toLocaleString() + ' A';
+    document.getElementById('sc-out-ds-aic').textContent = (dsRequired/1000) + ' kA';
+
+    sldState.branchKA = iDownstream/1000;
+    setNodeVal('v-branch-fault', sldState.branchKA.toFixed(1)+' kA', iDownstream <= dsRequired ? 'pass':'fail');
+  } else {
+    sldState.branchKA = null;
+    setNodeVal('v-branch-fault', '— kA', null);
+  }
+}
+
+document.querySelectorAll('#vd-voltage,#vd-current,#vd-length,#vd-material,#vd-size').forEach(el=>{
+  el.addEventListener('input', runVD);
+  el.addEventListener('change', runVD);
+});
+document.querySelectorAll('#vd-ds-current,#vd-ds-length,#vd-ds-material,#vd-ds-size').forEach(el=>{
+  el.addEventListener('input', runVD);
+  el.addEventListener('change', runVD);
+});
+document.querySelectorAll('#sc-voltage,#sc-kva,#sc-z,#sc-length,#sc-material,#sc-size').forEach(el=>{
+  el.addEventListener('input', runSC);
+  el.addEventListener('change', runSC);
+});
+document.querySelectorAll('#sc-ds-length,#sc-ds-material,#sc-ds-size').forEach(el=>{
+  el.addEventListener('input', runSC);
+  el.addEventListener('change', runSC);
+});
+
+function runIllum(){
+  const mode = document.getElementById('illum-mode-seg').querySelector('.active').dataset.val;
+  const L = parseFloat(document.getElementById('illum-length').value) || 0;
+  const W = parseFloat(document.getElementById('illum-width').value) || 0;
+  const F = parseFloat(document.getElementById('illum-lumens').value) || 0;
+  const watts = parseFloat(document.getElementById('illum-watts').value) || 0;
+  const UF = parseFloat(document.getElementById('illum-uf').value) || 0;
+  const LLF = parseFloat(document.getElementById('illum-llf').value) || 0;
+  const target = parseFloat(document.getElementById('illum-target').value) || 0;
+  const ceilH = parseFloat(document.getElementById('illum-ceil-h').value) || 2.4;
+  const wpH = parseFloat(document.getElementById('illum-wp-h').value) || 0;
+  const mountH = Math.max(0.3, ceilH - wpH);
+  const A = L * W;
+
+  document.getElementById('illum-out-area').textContent = A.toFixed(2) + ' m²';
+  document.getElementById('illum-target-label').textContent = mode === 'fixtures'
+    ? 'Target illuminance (lux)' : 'Compare against target (lux)';
+
+  let N, lux;
+  if(mode === 'lux'){
+    N = parseFloat(document.getElementById('illum-n').value) || 0;
+    lux = A > 0 ? (N * F * UF * LLF) / A : 0;
+    document.getElementById('illum-row-fixtures').style.display = 'none';
+  } else {
+    const denom = F * UF * LLF;
+    N = denom > 0 ? Math.ceil((target * A) / denom) : 0;
+    lux = A > 0 ? (N * F * UF * LLF) / A : 0;
+    document.getElementById('illum-row-fixtures').style.display = 'flex';
+    document.getElementById('illum-out-fixtures').textContent = N;
+  }
+
+  document.getElementById('illum-out-lux').textContent = lux.toFixed(1) + ' lux';
+  const totalW = N * watts;
+  document.getElementById('illum-out-watts').textContent = totalW.toFixed(1) + ' W';
+  document.getElementById('illum-out-va').textContent = totalW.toFixed(1) + ' VA';
+
+  const pass = target > 0 ? lux >= target * 0.95 : true;
+  const verdict = document.getElementById('illum-verdict');
+  const text = document.getElementById('illum-verdict-text');
+  verdict.classList.toggle('pass', pass);
+  verdict.classList.toggle('fail', !pass);
+  text.textContent = target > 0
+    ? (pass
+        ? `Meets the ${target} lux target with ${N} fixture${N===1?'':'s'}.`
+        : `Below the ${target} lux target — add fixtures or increase output to close the gap.`)
+    : 'Set a target illuminance to check against.';
+
+  window.illumState = {N, watts, totalVA: totalW};
+  renderRoomViz(L, W, N, pass, lux, F, target, mountH);
+}
+
+function fixturePositionsMeters(L, W, N){
+  const cols = Math.max(1, Math.round(Math.sqrt(Math.max(N,1) * (L/W))));
+  const rows = Math.max(1, Math.ceil(N/cols));
+  const cellW = L/cols, cellH = W/rows;
+  const pts = [];
+  for(let i=0;i<N;i++){
+    const col = i % cols, row = Math.floor(i/cols);
+    pts.push({x: cellW*(col+0.5), y: cellH*(row+0.5)});
+  }
+  return pts;
+}
+
+function heatColor(t){
+  const stops = [
+    [0.00,[189,74,62]],
+    [0.50,[224,168,42]],
+    [1.00,[94,168,97]]
+  ];
+  t = Math.max(0, Math.min(1, t));
+  let a = stops[0], b = stops[stops.length-1];
+  for(let i=0;i<stops.length-1;i++){
+    if(t>=stops[i][0] && t<=stops[i+1][0]){ a=stops[i]; b=stops[i+1]; break; }
+  }
+  const span = b[0]-a[0] || 1;
+  const f = (t-a[0])/span;
+  const c = a[1].map((v,i)=> Math.round(v + (b[1][i]-v)*f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function renderRoomViz(L, W, N, pass, avgLux, F, target, mountH){
+  const host = document.getElementById('illum-room-viz');
+  const legend = document.getElementById('illum-viz-legend');
+  if(L<=0 || W<=0){ host.innerHTML=''; legend.innerHTML=''; return; }
+
+  const boxW = 600, boxH = 340, pad = 30;
+  const scale = Math.min((boxW-2*pad)/L, (boxH-2*pad)/W);
+  const rw = L*scale, rh = W*scale;
+  const rx = (boxW-rw)/2, ry = (boxH-rh)/2;
+  const stroke = pass ? '#5E8C61' : '#BD4A3E';
+
+  const fixturesM = fixturePositionsMeters(L, W, N);
+  const cols = 26, rows = 16;
+  const cellMW = L/cols, cellMH = W/rows;
+  const grid = [];
+  let rawSum = 0;
+  for(let gy=0; gy<rows; gy++){
+    for(let gx=0; gx<cols; gx++){
+      const px = cellMW*(gx+0.5), py = cellMH*(gy+0.5);
+      let e = 0;
+      for(const f of fixturesM){
+        const dx = px-f.x, dy = py-f.y;
+        const r = Math.sqrt(dx*dx+dy*dy);
+        const d = Math.sqrt(r*r + mountH*mountH);
+        const I0 = (F || 0) / (4*Math.PI);
+        e += (I0 * mountH) / (d*d*d);
+      }
+      grid.push(e);
+      rawSum += e;
+    }
+  }
+  const rawAvg = rawSum / grid.length || 0;
+  const scaleFactor = (rawAvg>0 && avgLux>0) ? avgLux/rawAvg : 1;
+  const scaled = grid.map(v=>v*scaleFactor);
+  const vmin = Math.min(...scaled), vmax = Math.max(...scaled) || 1;
+  const ref = target>0 ? target : vmax;
+
+  const cellPW = rw/cols, cellPH = rh/rows;
+  let cells = '';
+  for(let gy=0; gy<rows; gy++){
+    for(let gx=0; gx<cols; gx++){
+      const v = scaled[gy*cols+gx];
+      const t = ref>0 ? v/ref : 0.5;
+      const x = rx + gx*cellPW, y = ry + gy*cellPH;
+      cells += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(cellPW+0.6).toFixed(1)}" height="${(cellPH+0.6).toFixed(1)}" fill="${heatColor(t)}"/>`;
+    }
+  }
+
+  let fixtures = '';
+  for(const f of fixturesM){
+    const cx = rx + (f.x/L)*rw, cy = ry + (f.y/W)*rh;
+    fixtures += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10" fill="var(--copper-bright)" opacity="0.22" class="fixture-glow"/>`
+              + `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4" fill="var(--copper-bright)" stroke="var(--navy-deep)" stroke-width="1"/>`;
+  }
+
+  host.innerHTML = `<div class="room-viz-3d"><svg viewBox="0 0 ${boxW} ${boxH}">
+    <defs><filter id="heatblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+    <clipPath id="roomclip"><rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${rw.toFixed(1)}" height="${rh.toFixed(1)}" rx="4"/></clipPath></defs>
+    <g clip-path="url(#roomclip)" filter="url(#heatblur)">${cells}</g>
+    <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${rw.toFixed(1)}" height="${rh.toFixed(1)}" rx="4" fill="none" stroke="${stroke}" stroke-width="2"/>
+    ${fixtures}
+  </svg></div>`;
+
+  legend.innerHTML = `<span style="color:#BD4A3E;">Low</span>
+    <span style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,${heatColor(0)},${heatColor(0.5)},${heatColor(1)});"></span>
+    <span style="color:#5E8C61;">Well lit (≥${ref.toFixed(0)} lux)</span>`;
+}
+
+const getIllumMode = setupSeg('illum-mode-seg', ()=>{
+  const on = getIllumMode() === 'fixtures';
+  document.getElementById('illum-n-field').style.display = on ? 'none' : 'block';
+  runIllum();
+});
+document.querySelectorAll('#illum-length,#illum-width,#illum-lumens,#illum-watts,#illum-uf,#illum-llf,#illum-n,#illum-target,#illum-ceil-h,#illum-wp-h').forEach(el=>{
+  el.addEventListener('input', runIllum);
+  el.addEventListener('change', runIllum);
+});
+document.getElementById('illum-push-ls').addEventListener('click', ()=>{
+  const s = window.illumState || {N:0, watts:0};
+  lsAddRow('Lighting', s.N || 1, s.watts || 0);
+  showTab('load-schedule');
+  document.getElementById('load-schedule').scrollIntoView({behavior:'smooth', block:'start'});
+});
+runIllum();
+
+
+let lsRows = [];
+let lsIdCounter = 0;
+let lsFeeder = {breaker:null, wire:null, ground:null, conduit:null, conduitMaterial:'PVC',
+                breakerManual:false, wireManual:false, groundManual:false, conduitManual:false};
+window.lsState = {rows:[], system:'1-230', busA:125, total:0, amps:0, demandVA:0, demandAmps:0, feeder:lsFeeder, panelName:'Panel A', verdictText:''};
+
+const BREAKER_SIZES = [15,20,30,40,50,60,70,90,100,110,125,150,175,200,225,250];
+const WIRE_SIZES = [
+  {size:'2.0 mm²', amp:20},
+  {size:'3.5 mm²', amp:30},
+  {size:'5.5 mm²', amp:40},
+  {size:'8.0 mm²', amp:50},
+  {size:'14 mm²', amp:70},
+  {size:'22 mm²', amp:95},
+  {size:'30 mm²', amp:110},
+  {size:'38 mm²', amp:125},
+  {size:'50 mm²', amp:150},
+  {size:'60 mm²', amp:175},
+  {size:'80 mm²', amp:200},
+  {size:'100 mm²', amp:230},
+  {size:'125 mm²', amp:255},
+  {size:'150 mm²', amp:280},
+];
+// Reference equipment-grounding-conductor sizes vs. OCPD rating (PEC/NEC Table 250.122, metric-equivalent sizes)
+const GROUND_TABLE = [
+  {maxBreaker:20,  size:'2.0 mm²'},
+  {maxBreaker:30,  size:'3.5 mm²'},
+  {maxBreaker:60,  size:'5.5 mm²'},
+  {maxBreaker:100, size:'8.0 mm²'},
+  {maxBreaker:200, size:'14 mm²'},
+  {maxBreaker:225, size:'22 mm²'},
+  {maxBreaker:250, size:'30 mm²'},
+  {maxBreaker:400, size:'38 mm²'},
+  {maxBreaker:600, size:'50 mm²'},
+];
+const CONDUIT_BY_WIRE = {
+  '2.0 mm²':'15 mm (1/2")', '3.5 mm²':'15 mm (1/2")', '5.5 mm²':'20 mm (3/4")', '8.0 mm²':'20 mm (3/4")',
+  '14 mm²':'25 mm (1")', '22 mm²':'25 mm (1")', '30 mm²':'32 mm (1-1/4")', '38 mm²':'32 mm (1-1/4")',
+  '50 mm²':'40 mm (1-1/2")', '60 mm²':'40 mm (1-1/2")', '80 mm²':'50 mm (2")', '100 mm²':'50 mm (2")',
+  '125 mm²':'65 mm (2-1/2")', '150 mm²':'65 mm (2-1/2")'
+};
+const CONDUIT_SIZES = ['15 mm (1/2")','20 mm (3/4")','25 mm (1")','32 mm (1-1/4")','40 mm (1-1/2")','50 mm (2")','65 mm (2-1/2")','80 mm (3")'];
+const CONDUIT_MATERIALS = ['PVC','RSC / IMC (steel)','EMT'];
+const CONTINUOUS_FACTOR = 0.8; // breakers should not be loaded beyond 80% on continuous residential loads — PEC/NEC 210.19(A)/210.20(A)/215.2(A)
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function suggestBreaker(amps){
+  const adjusted = amps / CONTINUOUS_FACTOR;
+  return BREAKER_SIZES.find(b => b >= adjusted) || BREAKER_SIZES[BREAKER_SIZES.length-1];
+}
+function breakerIsAdequate(amps, breaker){
+  return amps <= breaker * CONTINUOUS_FACTOR + 1e-6;
+}
+function suggestWire(breaker){
+  const w = WIRE_SIZES.find(w => w.amp >= breaker);
+  return w ? w.size : WIRE_SIZES[WIRE_SIZES.length-1].size;
+}
+function suggestGround(breaker){
+  const g = GROUND_TABLE.find(g => breaker <= g.maxBreaker);
+  return g ? g.size : GROUND_TABLE[GROUND_TABLE.length-1].size;
+}
+function suggestConduit(wireSize){
+  return CONDUIT_BY_WIRE[wireSize] || CONDUIT_SIZES[0];
+}
+
+function lsAddRow(desc, qty, va){
+  const id = lsIdCounter++;
+  const sys = document.getElementById('ls-system') ? document.getElementById('ls-system').value : '1-230';
+  const amps = lsAmpsFor(qty*va, sys);
+  const breaker = suggestBreaker(amps);
+  const wire = suggestWire(breaker);
+  const ground = suggestGround(breaker);
+  const conduit = suggestConduit(wire);
+  lsRows.push({id, desc, qty, va, breaker, wire, ground, conduit, conduitMaterial:'PVC',
+               breakerManual:false, wireManual:false, groundManual:false, conduitManual:false});
+  lsRenderRows();
+}
+
+function lsUpdateRow(id, key, val){
+  const r = lsRows.find(r=>r.id===id);
+  if(r) r[key] = val;
+}
+
+function lsAmpsFor(totalVA, system){
+  const threePh = system.startsWith('3');
+  const voltage = parseInt(system.split('-')[1]);
+  return threePh ? totalVA / (1.732*voltage) : totalVA / voltage;
+}
+
+function lsRenderRows(){
+  const tbody = document.getElementById('ls-tbody');
+  const system = document.getElementById('ls-system').value;
+
+  const inputStyle = 'font-family:var(--font-mono);font-size:12.5px;padding:6px;border:1px solid #C9C1AA;border-radius:2px;background:#FBFAF5;color:var(--ink);';
+  tbody.innerHTML = lsRows.map((r,i)=>{
+    const totalVA = r.qty * r.va;
+    const amps = lsAmpsFor(totalVA, system);
+    const adequate = breakerIsAdequate(amps, r.breaker);
+    const breakerStyle = inputStyle + (adequate ? '' : 'border-color:var(--fault);color:#973B31;');
+    return `
+    <tr data-id="${r.id}" style="border-bottom:1px dotted #D8D2BE;">
+      <td style="padding:6px;color:var(--ink-soft);">${i+1}</td>
+      <td style="padding:6px;"><input type="text" class="ls-desc" value="${escapeHtml(r.desc)}" style="width:100%;min-width:150px;${inputStyle}"></td>
+      <td style="padding:6px;"><input type="number" class="ls-qty" value="${r.qty}" min="0" style="width:56px;${inputStyle}"></td>
+      <td style="padding:6px;"><input type="number" class="ls-va" value="${r.va}" min="0" style="width:80px;${inputStyle}"></td>
+      <td style="padding:6px;color:var(--ink-soft);">${amps.toFixed(1)} A</td>
+      <td style="padding:6px;">
+        <select class="ls-breaker" title="${adequate?'Within 80% continuous rating':'Exceeds 80% continuous rating for this load — pick a larger breaker'}" style="${breakerStyle}">
+          ${BREAKER_SIZES.map(b=>`<option value="${b}" ${r.breaker==b?'selected':''}>${b}A</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px;">
+        <select class="ls-wire" style="${inputStyle}">
+          ${WIRE_SIZES.map(w=>`<option value="${w.size}" ${r.wire===w.size?'selected':''}>${w.size}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px;">
+        <select class="ls-ground" style="${inputStyle}">
+          ${WIRE_SIZES.map(w=>`<option value="${w.size}" ${r.ground===w.size?'selected':''}>${w.size}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px;">
+        <select class="ls-conduit" style="${inputStyle}">
+          ${CONDUIT_SIZES.map(c=>`<option value="${c}" ${r.conduit===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px;">
+        <select class="ls-conduit-material" style="${inputStyle}">
+          ${CONDUIT_MATERIALS.map(m=>`<option value="${m}" ${r.conduitMaterial===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px;"><button class="ls-del" title="Remove circuit" style="background:none;border:none;color:#973B31;cursor:pointer;font-family:var(--font-mono);font-size:16px;line-height:1;">&times;</button></td>
+    </tr>
+  `;}).join('');
+
+  tbody.querySelectorAll('tr').forEach(tr=>{
+    const id = parseInt(tr.dataset.id);
+    tr.querySelector('.ls-desc').addEventListener('input', e=>{ lsUpdateRow(id,'desc',e.target.value); lsCalcTotals(); });
+    tr.querySelector('.ls-qty').addEventListener('input', e=>{ lsUpdateRow(id,'qty',parseFloat(e.target.value)||0); lsAutoSuggest(id); lsRenderRows(); });
+    tr.querySelector('.ls-va').addEventListener('input', e=>{ lsUpdateRow(id,'va',parseFloat(e.target.value)||0); lsAutoSuggest(id); lsRenderRows(); });
+    tr.querySelector('.ls-breaker').addEventListener('change', e=>{ lsUpdateRow(id,'breaker',parseFloat(e.target.value)); lsUpdateRow(id,'breakerManual',true); lsRenderRows(); });
+    tr.querySelector('.ls-wire').addEventListener('change', e=>{ lsUpdateRow(id,'wire',e.target.value); lsUpdateRow(id,'wireManual',true); lsCalcTotals(); });
+    tr.querySelector('.ls-ground').addEventListener('change', e=>{ lsUpdateRow(id,'ground',e.target.value); lsUpdateRow(id,'groundManual',true); lsCalcTotals(); });
+    tr.querySelector('.ls-conduit').addEventListener('change', e=>{ lsUpdateRow(id,'conduit',e.target.value); lsUpdateRow(id,'conduitManual',true); lsCalcTotals(); });
+    tr.querySelector('.ls-conduit-material').addEventListener('change', e=>{ lsUpdateRow(id,'conduitMaterial',e.target.value); lsCalcTotals(); });
+    tr.querySelector('.ls-del').addEventListener('click', ()=>{ lsRows = lsRows.filter(r=>r.id!==id); lsRenderRows(); });
+  });
+  lsCalcTotals();
+}
+
+function lsAutoSuggest(id){
+  const r = lsRows.find(r=>r.id===id);
+  if(!r) return;
+  const system = document.getElementById('ls-system').value;
+  const amps = lsAmpsFor(r.qty*r.va, system);
+  if(!r.breakerManual) r.breaker = suggestBreaker(amps);
+  if(!r.wireManual) r.wire = suggestWire(r.breaker);
+  if(!r.groundManual) r.ground = suggestGround(r.breaker);
+  if(!r.conduitManual) r.conduit = suggestConduit(r.wire);
+}
+
+function populateFeederSelects(){
+  document.getElementById('ls-feeder-breaker').innerHTML = BREAKER_SIZES.map(b=>`<option value="${b}">${b}A</option>`).join('');
+  document.getElementById('ls-feeder-wire').innerHTML = WIRE_SIZES.map(w=>`<option value="${w.size}">${w.size}</option>`).join('');
+  document.getElementById('ls-feeder-ground').innerHTML = WIRE_SIZES.map(w=>`<option value="${w.size}">${w.size}</option>`).join('');
+  document.getElementById('ls-feeder-conduit').innerHTML = CONDUIT_SIZES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('ls-feeder-conduit-material').innerHTML = CONDUIT_MATERIALS.map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  document.getElementById('ls-feeder-breaker').addEventListener('change', e=>{ lsFeeder.breaker = parseFloat(e.target.value); lsFeeder.breakerManual = true; lsCalcTotals(); });
+  document.getElementById('ls-feeder-wire').addEventListener('change', e=>{ lsFeeder.wire = e.target.value; lsFeeder.wireManual = true; lsCalcTotals(); });
+  document.getElementById('ls-feeder-ground').addEventListener('change', e=>{ lsFeeder.ground = e.target.value; lsFeeder.groundManual = true; lsCalcTotals(); });
+  document.getElementById('ls-feeder-conduit').addEventListener('change', e=>{ lsFeeder.conduit = e.target.value; lsFeeder.conduitManual = true; lsCalcTotals(); });
+  document.getElementById('ls-feeder-conduit-material').addEventListener('change', e=>{ lsFeeder.conduitMaterial = e.target.value; lsCalcTotals(); });
+}
+populateFeederSelects();
+
+function lsAutoSuggestFeeder(demandAmps){
+  if(!lsFeeder.breakerManual) lsFeeder.breaker = suggestBreaker(demandAmps);
+  if(!lsFeeder.wireManual) lsFeeder.wire = suggestWire(lsFeeder.breaker);
+  if(!lsFeeder.groundManual) lsFeeder.ground = suggestGround(lsFeeder.breaker);
+  if(!lsFeeder.conduitManual) lsFeeder.conduit = suggestConduit(lsFeeder.wire);
+}
+
+function lsCalcTotals(){
+  const system = document.getElementById('ls-system').value;
+  const busA = parseFloat(document.getElementById('ls-bus').value);
+  const panelName = document.getElementById('ls-panel-name').value.trim() || 'Panel A';
+  let total = 0;
+  lsRows.forEach(r=>{ total += r.qty*r.va; });
+
+  document.getElementById('ls-total-va').textContent = Math.round(total).toLocaleString()+' VA';
+  const amps = lsAmpsFor(total, system);
+  document.getElementById('ls-total-a').textContent = amps.toFixed(1)+' A';
+
+  const demandVA = total * 0.8;
+  const demandAmps = lsAmpsFor(demandVA, system);
+  document.getElementById('ls-demand-va').textContent = Math.round(demandVA).toLocaleString()+' VA';
+  document.getElementById('ls-demand-a').textContent = demandAmps.toFixed(1)+' A';
+
+  lsAutoSuggestFeeder(demandAmps);
+  document.getElementById('ls-feeder-breaker').value = lsFeeder.breaker;
+  document.getElementById('ls-feeder-wire').value = lsFeeder.wire;
+  document.getElementById('ls-feeder-ground').value = lsFeeder.ground;
+  document.getElementById('ls-feeder-conduit').value = lsFeeder.conduit;
+  document.getElementById('ls-feeder-conduit-material').value = lsFeeder.conduitMaterial;
+
+  const verdict = document.getElementById('ls-verdict');
+  const text = document.getElementById('ls-verdict-text');
+  const pass = amps <= busA;
+  verdict.classList.toggle('pass', pass);
+  verdict.classList.toggle('fail', !pass);
+  const msg = pass
+    ? `Within the ${busA}A bus rating (${busA>0?(amps/busA*100).toFixed(0):0}% of capacity at 100% connected load).`
+    : `Exceeds the ${busA}A bus rating at 100% connected load — upsize the panel or trim connected load.`;
+  text.textContent = msg;
+
+  window.lsState = {rows: lsRows.slice(), system, busA, total, amps, demandVA, demandAmps,
+                     feeder: {...lsFeeder}, panelName, verdictText: msg};
+}
+
+document.getElementById('ls-add').addEventListener('click', ()=>{
+  lsAddRow('New circuit', 1, 0);
+});
+document.getElementById('ls-system').addEventListener('change', ()=>{
+  lsRows.forEach(r=>lsAutoSuggest(r.id));
+  lsRenderRows();
+});
+document.getElementById('ls-bus').addEventListener('change', lsCalcTotals);
+document.getElementById('ls-panel-name').addEventListener('input', lsCalcTotals);
+document.getElementById('ls-push-vd').addEventListener('click', ()=>{
+  document.getElementById('vd-current').value = window.lsState.demandAmps.toFixed(1);
+  runVD();
+  showTab('vd-calc');
+  document.getElementById('vd-calc').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+function showTab(tabId){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.tab===tabId));
+  document.querySelectorAll('.side-nav a[data-tab]').forEach(a=>a.classList.toggle('active', a.dataset.tab===tabId));
+}
+document.querySelectorAll('.side-nav a[data-tab]').forEach(a=>{
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    showTab(a.dataset.tab);
+  });
+});
+showTab('dashboard');lsAddRow('Lighting - general', 8, 150);
+lsAddRow('Convenience outlets - living/dining', 6, 180);
+lsAddRow('Convenience outlets - bedrooms', 5, 180);
+lsAddRow('Kitchen appliance circuit', 1, 1800);
+lsAddRow('Split-type aircon - master bedroom', 1, 2000);
+lsAddRow('Storage water heater', 1, 3000);
+lsAddRow('Spare', 0, 0);
+
+function fieldLabel(sel){ return conductorData[parseInt(document.getElementById(sel).value)].size; }
+
+function buildReport(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'}) + ' — ' + now.toLocaleTimeString('en-PH');
+
+  const vdPhase = document.querySelector('#vd-phase-seg .active').dataset.val === '1' ? 'Single-phase' : 'Three-phase';
+  const vdVoltage = document.getElementById('vd-voltage').value;
+  const vdCurrent = document.getElementById('vd-current').value;
+  const vdLength = document.getElementById('vd-length').value;
+  const vdMaterial = document.getElementById('vd-material').value;
+  const vdSize = fieldLabel('vd-size');
+  const vdOutVD = document.getElementById('vd-out-vd').textContent;
+  const vdOutPct = document.getElementById('vd-out-pct').textContent;
+  const vdVerdict = document.getElementById('vd-verdict-text').textContent;
+  const vdDsOn = document.querySelector('#vd-ds-seg .active').dataset.val === 'on';
+  const vdDsCurrent = document.getElementById('vd-ds-current').value;
+  const vdDsLength = document.getElementById('vd-ds-length').value;
+  const vdDsMaterial = document.getElementById('vd-ds-material').value;
+  const vdDsSize = fieldLabel('vd-ds-size');
+  const vdDsOutVD = document.getElementById('vd-ds-out-vd').textContent;
+  const vdDsOutPct = document.getElementById('vd-ds-out-pct').textContent;
+  const vdDsVerdict = document.getElementById('vd-ds-verdict-text').textContent;
+  const vdCombinedPct = document.getElementById('vd-combined-pct').textContent;
+  const vdCombinedVerdict = document.getElementById('vd-combined-verdict-text').textContent;
+
+  const scPhase = document.querySelector('#sc-phase-seg .active').dataset.val === '1' ? 'Single-phase' : 'Three-phase';
+  const scVoltage = document.getElementById('sc-voltage').value;
+  const scKva = document.getElementById('sc-kva').value;
+  const scZ = document.getElementById('sc-z').value;
+  const scLength = document.getElementById('sc-length').value;
+  const scMaterial = document.getElementById('sc-material').value;
+  const scSize = fieldLabel('sc-size');
+  const scFla = document.getElementById('sc-out-fla').textContent;
+  const scXfmr = document.getElementById('sc-out-xfmr').textContent;
+  const scPanel = document.getElementById('sc-out-panel').textContent;
+  const scAic = document.getElementById('sc-out-aic').textContent;
+  const scVerdict = document.getElementById('sc-verdict-text').textContent;
+  const scDsOn = document.querySelector('#sc-ds-seg .active').dataset.val === 'on';
+  const scDsLength = document.getElementById('sc-ds-length').value;
+  const scDsMaterial = document.getElementById('sc-ds-material').value;
+  const scDsSize = fieldLabel('sc-ds-size');
+  const scDsFault = document.getElementById('sc-out-ds').textContent;
+  const scDsAic = document.getElementById('sc-out-ds-aic').textContent;
+
+  document.getElementById('print-report').innerHTML = `
+    <div class="rpt-h1">Residential circuit calculation report</div>
+    <div class="rpt-meta">Generated ${dateStr} — Circuit &amp; Drop reference tool (PEC/NEC)</div>
+
+    <div class="rpt-section">
+      <h3>Voltage drop</h3>
+      <div class="rpt-row"><span>System</span><span>${vdPhase}, ${vdVoltage} V</span></div>
+      <div class="rpt-row"><span>Stage 1 — Load current (source to panel)</span><span>${vdCurrent} A</span></div>
+      <div class="rpt-row"><span>Stage 1 — One-way length</span><span>${vdLength} m</span></div>
+      <div class="rpt-row"><span>Stage 1 — Conductor</span><span>${vdSize} — ${vdMaterial}</span></div>
+      <div class="rpt-row"><span>Stage 1 — Voltage drop</span><span>${vdOutVD}</span></div>
+      <div class="rpt-row"><span>Stage 1 — Percent drop</span><span>${vdOutPct}</span></div>
+      <div class="rpt-verdict">${vdVerdict}</div>
+      ${vdDsOn ? `
+      <div style="margin-top:10px;">
+        <div class="rpt-row"><span>Stage 2 — Load current (panel to farthest load)</span><span>${vdDsCurrent} A</span></div>
+        <div class="rpt-row"><span>Stage 2 — One-way length</span><span>${vdDsLength} m</span></div>
+        <div class="rpt-row"><span>Stage 2 — Conductor</span><span>${vdDsSize} — ${vdDsMaterial}</span></div>
+        <div class="rpt-row"><span>Stage 2 — Voltage drop</span><span>${vdDsOutVD}</span></div>
+        <div class="rpt-row"><span>Stage 2 — Percent drop</span><span>${vdDsOutPct}</span></div>
+        <div class="rpt-verdict">${vdDsVerdict}</div>
+        <div class="rpt-row" style="margin-top:8px;"><span>Combined (Stage 1 + Stage 2)</span><span>${vdCombinedPct}</span></div>
+        <div class="rpt-verdict">${vdCombinedVerdict}</div>
+      </div>` : ''}
+    </div>
+
+    <div class="rpt-section">
+      <h3>Short circuit / fault current</h3>
+      <div class="rpt-row"><span>System</span><span>${scPhase}, ${scVoltage} V</span></div>
+      <div class="rpt-row"><span>Transformer</span><span>${scKva} kVA, ${scZ}% Z</span></div>
+      <div class="rpt-row"><span>Feeder length to panel</span><span>${scLength} m</span></div>
+      <div class="rpt-row"><span>Feeder conductor</span><span>${scSize} — ${scMaterial}</span></div>
+      <div class="rpt-row"><span>Transformer FLA</span><span>${scFla}</span></div>
+      <div class="rpt-row"><span>Fault current at transformer</span><span>${scXfmr}</span></div>
+      <div class="rpt-row"><span>Fault current at panel</span><span>${scPanel}</span></div>
+      <div class="rpt-row"><span>Minimum breaker AIC required (panel)</span><span>${scAic}</span></div>
+      <div class="rpt-verdict">${scVerdict}</div>
+      ${scDsOn ? `
+      <div style="margin-top:10px;">
+        <div class="rpt-row"><span>Downstream conductor, panel to point</span><span>${scDsLength} m, ${scDsSize} — ${scDsMaterial}</span></div>
+        <div class="rpt-row"><span>Fault current at downstream point</span><span>${scDsFault}</span></div>
+        <div class="rpt-row"><span>Minimum breaker AIC required (downstream)</span><span>${scDsAic}</span></div>
+      </div>` : ''}
+    </div>
+
+    <div class="rpt-section">
+      <h3>Panelboard load schedule — ${escapeHtml(window.lsState.panelName)}</h3>
+      <table class="rpt-ls-table" style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11.5px;margin-top:4px;">
+        <thead>
+          <tr style="border-bottom:1px solid #8A8368;">
+            <th style="text-align:left;padding:5px 4px;">Ckt</th>
+            <th style="text-align:left;padding:5px 4px;">Description</th>
+            <th style="text-align:right;padding:5px 4px;">Qty</th>
+            <th style="text-align:right;padding:5px 4px;">Load VA</th>
+            <th style="text-align:right;padding:5px 4px;">Load A</th>
+            <th style="text-align:left;padding:5px 4px;">Breaker</th>
+            <th style="text-align:left;padding:5px 4px;">Wire</th>
+            <th style="text-align:left;padding:5px 4px;">Ground</th>
+            <th style="text-align:left;padding:5px 4px;">Conduit</th>
+            <th style="text-align:left;padding:5px 4px;">Material</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${window.lsState.rows.map((r,i)=>{
+            const va = r.qty*r.va;
+            const a = lsAmpsFor(va, window.lsState.system);
+            return `<tr style="border-bottom:1px dotted #D8D2BE;">
+              <td style="padding:4px;">${i+1}</td>
+              <td style="padding:4px;">${escapeHtml(r.desc)}</td>
+              <td style="padding:4px;text-align:right;">${r.qty}</td>
+              <td style="padding:4px;text-align:right;">${va.toLocaleString()}</td>
+              <td style="padding:4px;text-align:right;">${a.toFixed(1)}</td>
+              <td style="padding:4px;">${r.breaker}A</td>
+              <td style="padding:4px;">${r.wire}</td>
+              <td style="padding:4px;">${r.ground}</td>
+              <td style="padding:4px;">${r.conduit}</td>
+              <td style="padding:4px;">${r.conduitMaterial}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="rpt-row" style="margin-top:8px;border-top:1px solid #C9C1AA;padding-top:8px;"><span>Total connected load</span><span>${Math.round(window.lsState.total).toLocaleString()} VA</span></div>
+      <div class="rpt-row"><span>Estimated main current (100%)</span><span>${window.lsState.amps.toFixed(1)} A</span></div>
+      <div class="rpt-row"><span>Demand load (80% of connected)</span><span>${Math.round(window.lsState.demandVA).toLocaleString()} VA — ${window.lsState.demandAmps.toFixed(1)} A</span></div>
+      <div class="rpt-row"><span>Panel bus rating</span><span>${window.lsState.busA} A</span></div>
+      <div class="rpt-verdict">${window.lsState.verdictText}</div>
+
+      <div style="margin-top:14px;">
+        <div style="font-family:var(--font-display);font-size:13px;font-weight:600;margin-bottom:4px;">Feeder / main equipment (sized off demand load)</div>
+        <div class="rpt-row"><span>Main breaker</span><span>${window.lsState.feeder.breaker} A</span></div>
+        <div class="rpt-row"><span>Feeder wire</span><span>${window.lsState.feeder.wire}</span></div>
+        <div class="rpt-row"><span>Feeder ground wire</span><span>${window.lsState.feeder.ground}</span></div>
+        <div class="rpt-row"><span>Feeder conduit</span><span>${window.lsState.feeder.conduit} — ${window.lsState.feeder.conduitMaterial}</span></div>
+      </div>
+    </div>
+
+    <div class="rpt-section" style="font-family:var(--font-mono);font-size:11px;color:#5B6472;line-height:1.6;">
+      Reference tool, not a stamped calculation. Verify against the current edition of the Philippine Electrical Code (or NEC, where applicable) and consult a licensed Professional Electrical Engineer before finalizing an actual installation.
+    </div>
+  `;
+  if(window.applyPdfOrientation) window.applyPdfOrientation();
+  window.print();
+}
+
+document.getElementById('export-btn').addEventListener('click', buildReport);
+
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert('Excel export library did not load — check your internet connection and try again.');
+    return;
+  }
+  const s = window.lsState;
+  const wb = XLSX.utils.book_new();
+
+  const lsAoa = [
+    ['Panelboard load schedule', s.panelName],
+    ['Generated', new Date().toLocaleString('en-PH')],
+    [],
+    ['Ckt','Description','Qty','Load (VA)','Load (A)','Breaker (A)','Wire size','Ground wire','Conduit size','Conduit material']
+  ];
+  s.rows.forEach((r,i)=>{
+    const va = r.qty*r.va;
+    const a = lsAmpsFor(va, s.system);
+    lsAoa.push([i+1, r.desc, r.qty, va, Number(a.toFixed(1)), r.breaker, r.wire, r.ground, r.conduit, r.conduitMaterial]);
+  });
+  lsAoa.push([]);
+  lsAoa.push(['Total connected load (VA)', Math.round(s.total)]);
+  lsAoa.push(['Estimated main current, 100% (A)', Number(s.amps.toFixed(1))]);
+  lsAoa.push(['Demand load, 80% (VA)', Math.round(s.demandVA)]);
+  lsAoa.push(['Demand current (A)', Number(s.demandAmps.toFixed(1))]);
+  lsAoa.push(['Panel bus rating (A)', s.busA]);
+  lsAoa.push(['Verdict', s.verdictText]);
+  lsAoa.push([]);
+  lsAoa.push(['Feeder / main equipment', '(sized off demand load)']);
+  lsAoa.push(['Main breaker (A)', s.feeder.breaker]);
+  lsAoa.push(['Feeder wire', s.feeder.wire]);
+  lsAoa.push(['Feeder ground wire', s.feeder.ground]);
+  lsAoa.push(['Feeder conduit', s.feeder.conduit]);
+  lsAoa.push(['Feeder conduit material', s.feeder.conduitMaterial]);
+
+  const wsLoad = XLSX.utils.aoa_to_sheet(lsAoa);
+  wsLoad['!cols'] = [{wch:6},{wch:32},{wch:6},{wch:11},{wch:9},{wch:11},{wch:11},{wch:12},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsLoad, 'Load Schedule');
+
+  const vdAoa = [
+    ['Voltage drop calculation'],
+    ['System', document.querySelector('#vd-phase-seg .active').textContent],
+    ['System voltage (V)', document.getElementById('vd-voltage').value],
+    ['Stage 1 (source to panel)'],
+    ['Load current (A)', document.getElementById('vd-current').value],
+    ['One-way length (m)', document.getElementById('vd-length').value],
+    ['Conductor material', document.getElementById('vd-material').value],
+    ['Conductor size', fieldLabel('vd-size')],
+    ['Voltage drop', document.getElementById('vd-out-vd').textContent],
+    ['Percent drop', document.getElementById('vd-out-pct').textContent],
+    ['Verdict', document.getElementById('vd-verdict-text').textContent],
+  ];
+  if(document.querySelector('#vd-ds-seg .active').dataset.val === 'on'){
+    vdAoa.push([]);
+    vdAoa.push(['Stage 2 (panel to farthest load)']);
+    vdAoa.push(['Load current (A)', document.getElementById('vd-ds-current').value]);
+    vdAoa.push(['One-way length (m)', document.getElementById('vd-ds-length').value]);
+    vdAoa.push(['Conductor material', document.getElementById('vd-ds-material').value]);
+    vdAoa.push(['Conductor size', fieldLabel('vd-ds-size')]);
+    vdAoa.push(['Voltage drop', document.getElementById('vd-ds-out-vd').textContent]);
+    vdAoa.push(['Percent drop', document.getElementById('vd-ds-out-pct').textContent]);
+    vdAoa.push(['Verdict', document.getElementById('vd-ds-verdict-text').textContent]);
+    vdAoa.push([]);
+    vdAoa.push(['Combined (Stage 1 + Stage 2)', document.getElementById('vd-combined-pct').textContent]);
+    vdAoa.push(['Combined verdict', document.getElementById('vd-combined-verdict-text').textContent]);
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(vdAoa), 'Voltage Drop');
+
+  const scAoa = [
+    ['Short circuit / fault current calculation'],
+    ['System', document.querySelector('#sc-phase-seg .active').textContent],
+    ['System voltage (V)', document.getElementById('sc-voltage').value],
+    ['Transformer (kVA)', document.getElementById('sc-kva').value],
+    ['Transformer %Z', document.getElementById('sc-z').value],
+    ['Feeder length to panel (m)', document.getElementById('sc-length').value],
+    ['Feeder conductor material', document.getElementById('sc-material').value],
+    ['Feeder conductor size', fieldLabel('sc-size')],
+    ['Transformer FLA', document.getElementById('sc-out-fla').textContent],
+    ['Fault current at transformer', document.getElementById('sc-out-xfmr').textContent],
+    ['Fault current at panel', document.getElementById('sc-out-panel').textContent],
+    ['Minimum breaker AIC required (panel)', document.getElementById('sc-out-aic').textContent],
+    ['Verdict', document.getElementById('sc-verdict-text').textContent],
+  ];
+  if(document.querySelector('#sc-ds-seg .active').dataset.val === 'on'){
+    scAoa.push([]);
+    scAoa.push(['Downstream point']);
+    scAoa.push(['Conductor length, panel to point (m)', document.getElementById('sc-ds-length').value]);
+    scAoa.push(['Conductor material', document.getElementById('sc-ds-material').value]);
+    scAoa.push(['Conductor size', fieldLabel('sc-ds-size')]);
+    scAoa.push(['Fault current at downstream point', document.getElementById('sc-out-ds').textContent]);
+    scAoa.push(['Minimum breaker AIC required (downstream)', document.getElementById('sc-out-ds-aic').textContent]);
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scAoa), 'Short Circuit');
+
+  const safeName = s.panelName.replace(/[^a-z0-9]+/gi, '_');
+  XLSX.writeFile(wb, `Circuit_and_Drop_${safeName}.xlsx`);
+}
+document.getElementById('export-xlsx-btn').addEventListener('click', exportExcel);
+
+/* ---- DXF (CAD) export ----
+   True .dwg is a closed, proprietary binary format with no reliable client-side writer.
+   DXF is the open, documented CAD exchange format — AutoCAD, LibreCAD, DraftSight, BricsCAD,
+   etc. all open it natively, and AutoCAD can Save As DWG from it directly if that extension
+   is specifically required. */
+function dxfLine(x1,y1,x2,y2,layer){
+  return `0\nLINE\n8\n${layer}\n10\n${x1}\n20\n${y1}\n30\n0\n11\n${x2}\n21\n${y2}\n31\n0\n`;
+}
+function dxfCircle(cx,cy,r,layer){
+  return `0\nCIRCLE\n8\n${layer}\n10\n${cx}\n20\n${cy}\n30\n0\n40\n${r}\n`;
+}
+function dxfRectLines(x,y,w,h,layer){
+  return dxfLine(x,y,x+w,y,layer)+dxfLine(x+w,y,x+w,y+h,layer)+dxfLine(x+w,y+h,x,y+h,layer)+dxfLine(x,y+h,x,y,layer);
+}
+function dxfText(x,y,h,txt,layer,align){
+  align = align || 'left';
+  const hjust = align==='center' ? '\n72\n1' : '';
+  const align2 = align==='center' ? `\n11\n${x}\n21\n${y}\n31\n0` : '';
+  return `0\nTEXT\n8\n${layer}\n10\n${x}\n20\n${y}\n30\n0\n40\n${h}\n1\n${String(txt).replace(/\n/g,' ')}${hjust}${align2}\n`;
+}
+
+function exportDXF(){
+  const s = window.lsState;
+  const sld = sldState;
+  let ents = '';
+
+  // Coordinate system: DXF Y is flipped vs. the SVG's (SVG grows downward, DXF grows upward)
+  const flip = (y) => 400 - y;
+
+  // Bus line
+  ents += dxfLine(70, flip(110), 910, flip(110), 'BUS');
+
+  // Transformer
+  ents += dxfCircle(70, flip(110), 26, 'SYMBOLS');
+  ents += dxfText(70, flip(152), 8, 'UTILITY XFMR', 'LABELS', 'center');
+  ents += dxfText(70, flip(170), 9, (sld.xfmrKA!=null? sld.xfmrKA.toFixed(1) : '—')+' kA fault', 'VALUES', 'center');
+
+  // Service entrance
+  ents += dxfRectLines(290, flip(126), 32, 32, 'SYMBOLS');
+  ents += dxfText(306, flip(152), 8, 'SERVICE ENTR.', 'LABELS', 'center');
+  ents += dxfText(306, flip(170), 9, (sld.serviceVD!=null? sld.serviceVD.toFixed(1) : '—')+'% VD', 'VALUES', 'center');
+
+  // Main panel
+  ents += dxfRectLines(540, flip(134), 40, 48, 'SYMBOLS');
+  ents += dxfText(560, flip(152), 8, `MAIN PANEL — ${s.panelName}`, 'LABELS', 'center');
+  ents += dxfText(560, flip(170), 9, (sld.panelKA!=null? sld.panelKA.toFixed(1) : '—')+' kA fault', 'VALUES', 'center');
+  ents += dxfText(560, flip(186), 8, `Bus ${s.busA}A — Main bkr ${s.feeder.breaker}A — ${s.feeder.wire}`, 'VALUES', 'center');
+
+  // Branch load
+  ents += dxfCircle(880, flip(110), 5, 'SYMBOLS');
+  ents += dxfLine(860, flip(95), 900, flip(125), 'SYMBOLS');
+  ents += dxfLine(900, flip(95), 860, flip(125), 'SYMBOLS');
+  ents += dxfText(880, flip(152), 8, 'BRANCH LOAD', 'LABELS', 'center');
+  ents += dxfText(880, flip(170), 9, (sld.branchVD!=null? sld.branchVD.toFixed(1) : '—')+'% VD', 'VALUES', 'center');
+  ents += dxfText(880, flip(186), 8, (sld.branchKA!=null? sld.branchKA.toFixed(1)+' kA fault' : ''), 'VALUES', 'center');
+
+  // Panel schedule as a text block below the diagram
+  let ty = flip(230);
+  ents += dxfText(70, ty, 10, `PANELBOARD LOAD SCHEDULE — ${s.panelName}`, 'LABELS'); ty -= 14;
+  ents += dxfText(70, ty, 7, 'CKT  DESCRIPTION                          VA     A      BKR   WIRE       GND        CONDUIT', 'LABELS'); ty -= 12;
+  s.rows.forEach((r,i)=>{
+    const va = r.qty*r.va;
+    const a = lsAmpsFor(va, s.system);
+    const line = `${String(i+1).padEnd(4)} ${r.desc.slice(0,32).padEnd(34)} ${String(Math.round(va)).padEnd(6)} ${a.toFixed(1).padEnd(6)} ${(r.breaker+'A').padEnd(5)} ${r.wire.padEnd(10)} ${r.ground.padEnd(10)} ${r.conduit}`;
+    ents += dxfText(70, ty, 6.5, line, 'VALUES');
+    ty -= 10;
+  });
+  ty -= 6;
+  ents += dxfText(70, ty, 7, `Total connected: ${Math.round(s.total).toLocaleString()} VA  |  Demand (80%): ${Math.round(s.demandVA).toLocaleString()} VA, ${s.demandAmps.toFixed(1)} A  |  Feeder: ${s.feeder.wire}, gnd ${s.feeder.ground}, ${s.feeder.conduit} ${s.feeder.conduitMaterial}, main ${s.feeder.breaker}A`, 'LABELS');
+
+  const header = `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n6\n0\nENDSEC\n`;
+  const tables = `0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n0\nLAYER\n2\nBUS\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nLAYER\n2\nSYMBOLS\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nLAYER\n2\nLABELS\n70\n0\n62\n8\n6\nCONTINUOUS\n0\nLAYER\n2\nVALUES\n70\n0\n62\n3\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n`;
+  const entities = `0\nSECTION\n2\nENTITIES\n${ents}0\nENDSEC\n`;
+  const dxf = header + tables + entities + `0\nEOF\n`;
+
+  const safeName = s.panelName.replace(/[^a-z0-9]+/gi, '_');
+  downloadBlob(dxf, `Circuit_and_Drop_${safeName}.dxf`, 'application/dxf');
+}
+document.getElementById('export-dxf-btn').addEventListener('click', exportDXF);
+
+(function(){
+  const wrap = document.getElementById('nav-export');
+  const btn = document.getElementById('nav-export-btn');
+  const menu = document.getElementById('nav-export-menu');
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    wrap.classList.toggle('open');
+  });
+  menu.querySelectorAll(':scope > button').forEach(b=>{
+    b.addEventListener('click', ()=> wrap.classList.remove('open'));
+  });
+  document.addEventListener('click', e=>{
+    if(!wrap.contains(e.target)) wrap.classList.remove('open');
+  });
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape') wrap.classList.remove('open');
+  });
+
+  const orientSeg = document.getElementById('pdf-orient-seg');
+  orientSeg.addEventListener('click', e=>{
+    e.stopPropagation();
+    const b = e.target.closest('button');
+    if(!b) return;
+    [...orientSeg.children].forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    window.pdfOrientation = b.dataset.val;
+  });
+  window.pdfOrientation = 'landscape';
+
+  let pageStyleEl = document.getElementById('pdf-page-style');
+  if(!pageStyleEl){
+    pageStyleEl = document.createElement('style');
+    pageStyleEl.id = 'pdf-page-style';
+    document.head.appendChild(pageStyleEl);
+  }
+  window.applyPdfOrientation = function(){
+    pageStyleEl.textContent = `@media print{ @page{ size:${window.pdfOrientation}; margin:14mm; } }`;
+  };
+})();
+
+runVD();
+runSC();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+
+</body>
+</html>
